@@ -1332,6 +1332,13 @@ func (db *DB) getMaxBytes() int64 {
 	return db.opts.MaxBytes
 }
 
+// getMaxPercentage returns the current max percentage setting in a thread-safe manner.
+func (db *DB) getMaxPercentage() uint {
+	db.retentionMtx.RLock()
+	defer db.retentionMtx.RUnlock()
+	return db.opts.MaxPercentage
+}
+
 // dbAppender wraps the DB's head appender and triggers compactions on commit
 // if necessary.
 type dbAppender struct {
@@ -1995,16 +2002,17 @@ func BeyondSizeRetention(db *DB, blocks []*Block) (deletable map[ulid.ULID]struc
 	}
 
 	maxBytes := db.getMaxBytes()
+	maxPercentage := db.getMaxPercentage()
 
 	// percentage prevails
-	if db.opts.MaxPercentage > 0 {
+	if maxPercentage > 0 {
 		// retrieve FS size
 		diskSize := prom_runtime.FsSize(db.dir)
 		if diskSize <= 0 {
 			db.logger.Warn("msg", "Unable to retrieve filesystem size of database directory (%s), skip percentage limitation and default to fixed size limitation", db.dir)
 		} else {
 			// apply percentage
-			maxBytes = int64(uint64(db.opts.MaxPercentage) * diskSize / 100)
+			maxBytes = int64(uint64(maxPercentage) * diskSize / 100)
 		}
 	}
 
