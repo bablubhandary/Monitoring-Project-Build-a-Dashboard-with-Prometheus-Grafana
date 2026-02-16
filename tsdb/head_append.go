@@ -2150,7 +2150,7 @@ func (s *memSeries) cutNewHeadChunk(mint int64, e chunkenc.Encoding, chunkRange 
 			panic(err) // This should never happen.
 		}
 	} else {
-		panic("not a valid encoding") // This should never happen.
+		s.headChunks.chunk = chunkenc.NewXORChunk()
 	}
 
 	// Set upper bound on when the next chunk must be started. An earlier timestamp
