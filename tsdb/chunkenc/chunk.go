@@ -208,7 +208,7 @@ func (v ValueType) ChunkEncoding(storeST bool) Encoding {
 }
 
 func (v ValueType) NewChunk(storeST bool) (Chunk, error) {
-	return NewEmptyChunk(v.ChunkEncoding(storeST), storeST)
+	return NewEmptyChunk(v.ChunkEncoding(storeST))
 }
 
 // MockSeriesIterator returns an iterator for a mock series with custom
@@ -396,12 +396,9 @@ func FromData(e Encoding, d []byte) (Chunk, error) {
 
 // NewEmptyChunk returns an empty chunk for the given encoding.
 // TODO(krajorama): support storeST for histogram and float histogram chunks when they are implemented.
-func NewEmptyChunk(e Encoding, storeST bool) (Chunk, error) {
+func NewEmptyChunk(e Encoding) (Chunk, error) {
 	switch e {
 	case EncXOR:
-		if storeST {
-			return NewXOROptSTChunk(), nil
-		}
 		return NewXORChunk(), nil
 	case EncHistogram:
 		return NewHistogramChunk(), nil

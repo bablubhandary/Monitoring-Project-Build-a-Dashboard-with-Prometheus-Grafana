@@ -353,7 +353,7 @@ func BenchmarkLoadWLs(b *testing.B) {
 									// There's only one head chunk because only a single sample is appended. mmapChunks()
 									// ignores the latest chunk, so we need to cut a new head chunk to guarantee the chunk with
 									// the sample at c.mmappedChunkT is mmapped.
-									s.cutNewHeadChunk(false, c.mmappedChunkT, chunkenc.EncXOR, c.mmappedChunkT)
+									s.cutNewHeadChunk(c.mmappedChunkT, chunkenc.EncXOR, c.mmappedChunkT)
 									s.mmapChunks(chunkDiskMapper)
 								}
 								require.NoError(b, chunkDiskMapper.Close())
