@@ -870,6 +870,7 @@ type scrapeLoop struct {
 
 	// Options from scrape.Options.
 	enableSTZeroIngestion   bool
+	enableSTStorage         bool
 	enableTypeAndUnitLabels bool
 	reportExtraMetrics      bool
 	appendMetadataToWAL     bool
@@ -1224,6 +1225,7 @@ func newScrapeLoop(opts scrapeLoopOptions) *scrapeLoop {
 
 		// scrape.Options.
 		enableSTZeroIngestion:   opts.sp.options.EnableStartTimestampZeroIngestion,
+		enableSTStorage:         opts.sp.options.EnableSTStorage,
 		enableTypeAndUnitLabels: opts.sp.options.EnableTypeAndUnitLabels,
 		appendMetadataToWAL:     opts.sp.options.AppendMetadata,
 		passMetadataInContext:   opts.sp.options.PassMetadataInContext,
@@ -1583,7 +1585,7 @@ func (sl *scrapeLoopAppender) append(b []byte, contentType string, ts time.Time)
 		IgnoreNativeHistograms:                  !sl.enableNativeHistogramScraping,
 		ConvertClassicHistogramsToNHCB:          sl.convertClassicHistToNHCB,
 		KeepClassicOnClassicAndNativeHistograms: sl.alwaysScrapeClassicHist,
-		OpenMetricsSkipSTSeries:                 sl.enableSTZeroIngestion,
+		OpenMetricsSkipSTSeries:                 sl.enableSTZeroIngestion || sl.enableSTStorage,
 		FallbackContentType:                     sl.fallbackScrapeProtocol,
 	})
 	if p == nil {

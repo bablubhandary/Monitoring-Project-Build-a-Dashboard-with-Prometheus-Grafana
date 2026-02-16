@@ -117,6 +117,9 @@ type Options struct {
 	// See: https://github.com/prometheus/proposals/blob/main/proposals/2023-06-13_created-timestamp.md
 	EnableStartTimestampZeroIngestion bool
 
+	// Option to enable storing start timestamp natively
+	EnableSTStorage bool
+
 	// EnableTypeAndUnitLabels represents type-and-unit-labels feature flag.
 	EnableTypeAndUnitLabels bool
 

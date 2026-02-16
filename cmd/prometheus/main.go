@@ -280,6 +280,7 @@ func (c *flagConfig) setFeatureListOptions(logger *slog.Logger) error {
 				logger.Info("Experimental start timestamp zero ingestion enabled. Changed default scrape_protocols to prefer PrometheusProto format.", "global.scrape_protocols", fmt.Sprintf("%v", config.DefaultGlobalConfig.ScrapeProtocols))
 			case "st-storage":
 				// TODO(bwplotka): Implement ST Storage as per PROM-60 and document this hidden feature flag.
+				c.scrape.EnableSTStorage = true
 				c.tsdb.EnableSTStorage = true
 				c.agent.EnableSTStorage = true
 
@@ -842,10 +843,16 @@ func main() {
 	template.RegisterFeatures(features.DefaultRegistry)
 
 	var (
-		localStorage  = &readyStorage{stats: tsdb.NewDBStats()}
-		scraper       = &readyScrapeManager{}
-		remoteStorage = remote.NewStorage(logger.With("component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, time.Duration(cfg.RemoteFlushDeadline), scraper, cfg.scrape.EnableTypeAndUnitLabels)
-		fanoutStorage = storage.NewFanout(logger, localStorage, remoteStorage)
+		localStorage = &readyStorage{stats: tsdb.NewDBStats()}
+		scraper      = &readyScrapeManager{}
+		storeST      = cfg.tsdb.EnableSTStorage
+	)
+	if agentMode {
+		storeST = cfg.agent.EnableSTStorage
+	}
+	var (
+		remoteStorage = remote.NewStorageWithStoreST(logger.With("component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, time.Duration(cfg.RemoteFlushDeadline), scraper, cfg.scrape.EnableTypeAndUnitLabels, storeST)
+		fanoutStorage = storage.NewFanoutWithStoreST(logger, storeST, localStorage, remoteStorage)
 	)
 
 	var (
