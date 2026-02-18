@@ -1059,7 +1059,7 @@ func (a *headAppenderBase) log() error {
 	defer func() { a.head.putBytesBuffer(buf) }()
 
 	var rec []byte
-	var enc record.Encoder
+	enc := record.Encoder{EnableSTStorage: a.head.opts.EnableSTStorage.Load()}
 
 	if len(a.seriesRefs) > 0 {
 		rec = enc.Series(a.seriesRefs, buf)
@@ -1178,7 +1178,7 @@ type appenderCommitContext struct {
 	oooRecords          [][]byte
 	oooCapMax           int64
 	appendChunkOpts     chunkOpts
-	enc                 record.Encoder
+	oooEnc              record.Encoder
 }
 
 // commitExemplars adds all exemplars from the provided batch to the head's exemplar storage.
@@ -1228,31 +1228,31 @@ func (acc *appenderCommitContext) collectOOORecords(a *headAppenderBase) {
 				})
 			}
 		}
-		r := acc.enc.MmapMarkers(markers, a.head.getBytesBuffer())
+		r := acc.oooEnc.MmapMarkers(markers, a.head.getBytesBuffer())
 		acc.oooRecords = append(acc.oooRecords, r)
 	}
 
 	if len(acc.wblSamples) > 0 {
-		r := acc.enc.Samples(acc.wblSamples, a.head.getBytesBuffer())
+		r := acc.oooEnc.Samples(acc.wblSamples, a.head.getBytesBuffer())
 		acc.oooRecords = append(acc.oooRecords, r)
 	}
 	if len(acc.wblHistograms) > 0 {
-		r, customBucketsHistograms := acc.enc.HistogramSamples(acc.wblHistograms, a.head.getBytesBuffer())
+		r, customBucketsHistograms := acc.oooEnc.HistogramSamples(acc.wblHistograms, a.head.getBytesBuffer())
 		if len(r) > 0 {
 			acc.oooRecords = append(acc.oooRecords, r)
 		}
 		if len(customBucketsHistograms) > 0 {
-			r := acc.enc.CustomBucketsHistogramSamples(customBucketsHistograms, a.head.getBytesBuffer())
+			r := acc.oooEnc.CustomBucketsHistogramSamples(customBucketsHistograms, a.head.getBytesBuffer())
 			acc.oooRecords = append(acc.oooRecords, r)
 		}
 	}
 	if len(acc.wblFloatHistograms) > 0 {
-		r, customBucketsFloatHistograms := acc.enc.FloatHistogramSamples(acc.wblFloatHistograms, a.head.getBytesBuffer())
+		r, customBucketsFloatHistograms := acc.oooEnc.FloatHistogramSamples(acc.wblFloatHistograms, a.head.getBytesBuffer())
 		if len(r) > 0 {
 			acc.oooRecords = append(acc.oooRecords, r)
 		}
 		if len(customBucketsFloatHistograms) > 0 {
-			r := acc.enc.CustomBucketsFloatHistogramSamples(customBucketsFloatHistograms, a.head.getBytesBuffer())
+			r := acc.oooEnc.CustomBucketsFloatHistogramSamples(customBucketsFloatHistograms, a.head.getBytesBuffer())
 			acc.oooRecords = append(acc.oooRecords, r)
 		}
 	}
@@ -1741,6 +1741,9 @@ func (a *headAppenderBase) Commit() (err error) {
 			chunkDiskMapper: h.chunkDiskMapper,
 			chunkRange:      h.chunkRange.Load(),
 			samplesPerChunk: h.opts.SamplesPerChunk,
+		},
+		oooEnc: record.Encoder{
+			EnableSTStorage: h.opts.EnableSTStorage.Load(),
 		},
 	}
 
