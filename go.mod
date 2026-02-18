@@ -16,6 +16,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.285.0
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.71.0
+	github.com/aws/aws-sdk-go-v2/service/elasticache v1.51.9
 	github.com/aws/aws-sdk-go-v2/service/kafka v1.46.7
 	github.com/aws/aws-sdk-go-v2/service/lightsail v1.50.11
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.6
