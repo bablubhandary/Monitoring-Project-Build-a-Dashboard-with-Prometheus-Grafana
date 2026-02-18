@@ -47,6 +47,7 @@ import (
 	"github.com/prometheus/prometheus/tsdb/wlog"
 	"github.com/prometheus/prometheus/util/compression"
 	"github.com/prometheus/prometheus/util/features"
+	prom_runtime "github.com/prometheus/prometheus/util/runtime"
 )
 
 const (
@@ -125,6 +126,11 @@ type Options struct {
 	// the size of the WAL folder which is not added when calculating
 	// the current size of the database.
 	MaxBytes int64
+
+	// Maximum % of disk space to use for blocks to be retained
+	// 0 or less means disabled
+	// If both MaxBytes and MaxPercentage are set, percentage prevails
+	MaxPercentage uint
 
 	// NoLockfile disables creation and consideration of a lock file.
 	NoLockfile bool
@@ -1310,6 +1316,13 @@ func (db *DB) getMaxBytes() int64 {
 	return db.opts.MaxBytes
 }
 
+// getMaxPercentage returns the current max percentage setting in a thread-safe manner.
+func (db *DB) getMaxPercentage() uint {
+	db.retentionMtx.RLock()
+	defer db.retentionMtx.RUnlock()
+	return db.opts.MaxPercentage
+}
+
 // dbAppender wraps the DB's head appender and triggers compactions on commit
 // if necessary.
 type dbAppender struct {
@@ -1967,11 +1980,32 @@ func BeyondTimeRetention(db *DB, blocks []*Block) (deletable map[ulid.ULID]struc
 // BeyondSizeRetention returns those blocks which are beyond the size retention
 // set in the db options.
 func BeyondSizeRetention(db *DB, blocks []*Block) (deletable map[ulid.ULID]struct{}) {
-	// Size retention is disabled or no blocks to work with.
-	maxBytes := db.getMaxBytes()
-	if len(blocks) == 0 || maxBytes <= 0 {
+	// No blocks to work with
+	if len(blocks) == 0 {
 		return deletable
 	}
+
+	maxBytes := db.getMaxBytes()
+	maxPercentage := db.getMaxPercentage()
+
+	// percentage prevails
+	if maxPercentage > 0 {
+		// retrieve FS size
+		diskSize := prom_runtime.FsSize(db.dir)
+		if diskSize <= 0 {
+			db.logger.Warn("msg", "Unable to retrieve filesystem size of database directory (%s), skip percentage limitation and default to fixed size limitation", db.dir)
+		} else {
+			// apply percentage
+			maxBytes = int64(uint64(maxPercentage) * diskSize / 100)
+		}
+	}
+
+	// Size retention is disabled
+	if maxBytes <= 0 {
+		return deletable
+	}
+	// update MaxBytes gauge
+	db.metrics.maxBytes.Set(float64(maxBytes))
 
 	deletable = make(map[ulid.ULID]struct{})
 
