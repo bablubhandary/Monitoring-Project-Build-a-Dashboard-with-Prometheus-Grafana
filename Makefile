@@ -12,7 +12,8 @@
 # limitations under the License.
 
 # Needs to be defined before including Makefile.common to auto-generate targets
-DOCKER_ARCHS ?= amd64 armv7 arm64 ppc64le riscv64 s390x
+DOCKER_ARCHS            ?= amd64 armv7 arm64 ppc64le riscv64 s390x
+DOCKER_ARCHS_distroless := $(filter-out riscv64,$(DOCKER_ARCHS))
 
 UI_PATH = web/ui
 UI_NODE_MODULES_PATH = $(UI_PATH)/node_modules
@@ -163,8 +164,28 @@ endif
 .PHONY: tarball
 tarball: npm_licenses common-tarball
 
+# The distroless base image does not support riscv64, so we split docker
+# operations into separate sub-Make calls per Dockerfile variant, each
+# with its own supported arch list.
 .PHONY: docker
-docker: npm_licenses common-docker
+docker: npm_licenses
+	$(MAKE) common-docker DOCKERFILE_VARIANTS=Dockerfile
+	$(MAKE) common-docker DOCKERFILE_VARIANTS=Dockerfile.distroless DOCKER_ARCHS="$(DOCKER_ARCHS_distroless)"
+
+.PHONY: docker-publish
+docker-publish:
+	$(MAKE) common-docker-publish DOCKERFILE_VARIANTS=Dockerfile
+	$(MAKE) common-docker-publish DOCKERFILE_VARIANTS=Dockerfile.distroless DOCKER_ARCHS="$(DOCKER_ARCHS_distroless)"
+
+.PHONY: docker-tag-latest
+docker-tag-latest:
+	$(MAKE) common-docker-tag-latest DOCKERFILE_VARIANTS=Dockerfile
+	$(MAKE) common-docker-tag-latest DOCKERFILE_VARIANTS=Dockerfile.distroless DOCKER_ARCHS="$(DOCKER_ARCHS_distroless)"
+
+.PHONY: docker-manifest
+docker-manifest:
+	$(MAKE) common-docker-manifest DOCKERFILE_VARIANTS=Dockerfile
+	$(MAKE) common-docker-manifest DOCKERFILE_VARIANTS=Dockerfile.distroless DOCKER_ARCHS="$(DOCKER_ARCHS_distroless)"
 
 .PHONY: build
 build: assets npm_licenses assets-compress common-build
