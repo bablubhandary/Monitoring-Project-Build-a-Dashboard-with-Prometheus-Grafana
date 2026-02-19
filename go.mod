@@ -1,6 +1,6 @@
 module github.com/prometheus/prometheus
 
-go 1.22.7
+go 1.23
 
 toolchain go1.23.4
 
@@ -28,7 +28,7 @@ require (
 	github.com/go-zookeeper/zk v1.0.4
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.4
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.4.0
@@ -87,7 +87,7 @@ require (
 	google.golang.org/api v0.218.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250115164207-1a7da9e5054f
 	google.golang.org/grpc v1.70.0
-	google.golang.org/protobuf v1.36.4
+	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.3
